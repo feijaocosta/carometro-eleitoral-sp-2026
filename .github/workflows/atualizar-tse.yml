@@ -42,11 +42,11 @@ jobs:
         run: |
           python3 - <<'PY'
           import csv, json, glob, os
-          sp_files = glob.glob('tmp/tse/**/*_SP.csv', recursive=True)
-          br_files = glob.glob('tmp/tse/**/*_BR.csv', recursive=True)
+          all_files = glob.glob('tmp/tse/**/*.csv', recursive=True)
+          sp_files = [p for p in all_files if p.upper().endswith('_SP.CSV')]
           if not sp_files: raise SystemExit('Nenhum CSV de SP encontrado')
-          sp_path = sp_files[0]
-          paths = [sp_path] + ([br_files[0]] if br_files else [])
+          paths = sorted([p for p in all_files if os.path.basename(p).upper().startswith('CONSULTA_CAND_2026_') and p.upper().endswith('.CSV')])
+          if not paths: paths = sp_files
           out=[]
           for path in paths:
               with open(path, 'r', encoding='latin-1', newline='') as f:
@@ -62,7 +62,8 @@ jobs:
                       cargo=v('DS_CARGO')
                       numero=v('NR_CANDIDATO')
                       if not (nome and cargo and numero): continue
-                      if path != sp_path and 'PRESIDENTE' not in cargo.upper(): continue
+                      is_national = 'PRESIDENTE' in cargo.upper()
+                      if not is_national and '_SP.' not in path.upper() and not path.upper().endswith('_SP.CSV'): pass
                       sq=v('SQ_CANDIDATO')
                       foto=''
                       for prefix in ('FSP','FBR','BR','SP'):
@@ -71,8 +72,8 @@ jobs:
                               if os.path.exists(os.path.join('fotos',candidate)):
                                   foto='fotos/'+candidate; break
                           if foto: break
-                      out.append({'nome':nome,'partido':v('SG_PARTIDO'),'cargo':cargo,'numero':numero,'sq':sq,'situacao':v('DS_SITUACAO_CANDIDATURA','DS_SITUACAO'),'foto':foto})
-          with open('data/candidatos-sp.json','w',encoding='utf-8') as f: json.dump(out,f,ensure_ascii=False,separators=(',',':'))
+                      out.append({'nome':nome,'partido':v('SG_PARTIDO'),'cargo':cargo,'numero':numero,'sq':sq,'situacao':v('DS_SITUACAO_CANDIDATURA','DS_SITUACAO'),'estado':('BR' if is_national else os.path.basename(path).upper().split('_')[-1].split('.')[0]),'foto':foto})
+          with open('data/candidatos-brasil.json','w',encoding='utf-8') as f: json.dump(out,f,ensure_ascii=False,separators=(',',':'))
           print('Total:',len(out))
           print('Com foto:',sum(1 for x in out if x['foto']))
           print('Presidente:',sum(1 for x in out if 'PRESIDENTE' in x['cargo'].upper()))
