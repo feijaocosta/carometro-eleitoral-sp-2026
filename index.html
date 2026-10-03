@@ -19,7 +19,7 @@ input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;bord
 </head>
 <body>
 <div class="wrap">
-<header><h1>Carômetro Eleitoral — SP 2026</h1><p class="sub">Candidaturas de São Paulo • dados oficiais do TSE</p></header>
+<header><h1>Carômetro Eleitoral — SP 2026</h1><p class="sub">Candidaturas 2026 • dados oficiais do TSE</p></header>
 <div class="toolbar">
 <input id="q" placeholder="🔎 Nome ou número">
 <select id="estado"><option value="">Todos os estados</option></select><select id="cargo"><option value="">Todos os cargos</option></select>
@@ -28,7 +28,7 @@ input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;bord
 </div>
 <div id="status" class="status">Carregando dados...</div>
 <div id="grid" class="grid"></div>
-<div class="help"><strong>Fonte:</strong> Tribunal Superior Eleitoral — Portal de Dados Abertos. Este carômetro contém exclusivamente candidaturas do estado de São Paulo.</div>
+<div class="help"><strong>Fonte:</strong> Tribunal Superior Eleitoral — Portal de Dados Abertos. A base inclui candidaturas de todo o Brasil. Para Presidente, a candidatura é nacional; os demais cargos pertencem a um estado ou ao DF.</div>
 </div>
 <script>
 let candidatos=[];
@@ -112,7 +112,7 @@ async function loadData(){
  statusEl.textContent="Carregando base oficial do TSE…";
  grid.replaceChildren();
  try{
-   const response=await fetch("data/candidatos-sp.json?"+Date.now(),{cache:"no-store"});
+   const response=await fetch("data/candidatos-brasil.json?"+Date.now(),{cache:"no-store"});
    if(!response.ok)throw new Error("HTTP "+response.status);
    const data=await response.json();
    if(!Array.isArray(data))throw new Error("Formato inválido");
