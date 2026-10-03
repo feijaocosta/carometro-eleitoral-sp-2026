@@ -61,9 +61,13 @@ jobs:
                   sq=v("SQ_CANDIDATO")
                   foto=""
                   if sq:
-                      for ext in (".jpeg",".jpg",".JPEG",".JPG"):
-                          if os.path.exists(os.path.join("fotos",sq+ext)):
-                              foto="fotos/"+sq+ext
+                      for prefix in ("FSP","SP"):
+                          for suffix in ("_div.jpg","_div.jpeg",".jpg",".jpeg"):
+                              candidate=prefix+sq+suffix
+                              if os.path.exists(os.path.join("fotos",candidate)):
+                                  foto="fotos/"+candidate
+                                  break
+                          if foto:
                               break
                   out.append({
                       "nome":nome,
