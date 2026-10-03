@@ -22,7 +22,7 @@ input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;bord
 <header><h1>Carômetro Eleitoral — SP 2026</h1><p class="sub">Candidaturas de São Paulo • dados oficiais do TSE</p></header>
 <div class="toolbar">
 <input id="q" placeholder="🔎 Nome ou número">
-<select id="cargo"><option value="">Todos os cargos</option></select>
+<select id="estado"><option value="">Todos os estados</option></select><select id="cargo"><option value="">Todos os cargos</option></select>
 <select id="partido"><option value="">Todos os partidos</option></select>
 <button id="refresh">↻ Atualizar</button>
 </div>
@@ -33,6 +33,7 @@ input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;bord
 <script>
 let candidatos=[];
 const q=document.getElementById("q");
+const estado=document.getElementById("estado");
 const cargo=document.getElementById("cargo");
 const partido=document.getElementById("partido");
 const statusEl=document.getElementById("status");
@@ -45,8 +46,10 @@ function uniqueSorted(values){
  return [...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"pt-BR"));
 }
 function populateFilters(){
+ estado.replaceChildren(new Option("Todos os estados",""));
  cargo.replaceChildren(new Option("Todos os cargos",""));
  partido.replaceChildren(new Option("Todos os partidos",""));
+ uniqueSorted(candidatos.map(x=>x.estado)).forEach(x=>estado.add(new Option(x,x)));
  uniqueSorted(candidatos.map(x=>x.cargo)).forEach(x=>cargo.add(new Option(x,x)));
  uniqueSorted(candidatos.map(x=>x.partido)).forEach(x=>partido.add(new Option(x,x)));
 }
@@ -83,10 +86,12 @@ function makeCard(x){
 }
 function render(){
  const query=q.value.trim().toLocaleLowerCase("pt-BR");
+ const selectedEstado=estado.value;
  const selectedCargo=cargo.value;
  const selectedParty=partido.value;
  const list=candidatos.filter(x=>
    (!query || String(x.nome||"").toLocaleLowerCase("pt-BR").includes(query) || String(x.numero||"").includes(query)) &&
+   (!selectedEstado || x.estado===selectedEstado) &&
    (!selectedCargo || x.cargo===selectedCargo) &&
    (!selectedParty || x.partido===selectedParty)
  );
@@ -124,6 +129,7 @@ async function loadData(){
  }
 }
 q.addEventListener("input",render);
+estado.addEventListener("change",render);
 cargo.addEventListener("change",render);
 partido.addEventListener("change",render);
 document.getElementById("refresh").addEventListener("click",loadData);
