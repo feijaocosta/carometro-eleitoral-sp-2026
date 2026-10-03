@@ -1,0 +1,66 @@
+name: Atualizar dados TSE
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baixar pacote oficial do TSE
+        run: |
+          mkdir -p tmp data
+          curl -L --fail --retry 3 "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2026.zip" -o tmp/tse.zip
+          unzip -o tmp/tse.zip -d tmp/tse
+      - name: Gerar JSON de São Paulo
+        run: |
+          python3 <<'PY'
+          import csv, json, glob, os
+          files = glob.glob("tmp/tse/**/*SP*.csv", recursive=True)
+          if not files:
+              files = glob.glob("tmp/tse/**/*.csv", recursive=True)
+          if not files:
+              raise SystemExit("Nenhum CSV encontrado no pacote do TSE")
+          sp = [f for f in files if "_SP" in os.path.basename(f).upper()]
+          path = sp[0] if sp else files[0]
+          with open(path, "r", encoding="latin-1", newline="") as f:
+              sample=f.read(8192); f.seek(0)
+              dialect=csv.Sniffer().sniff(sample, delimiters=";,|")
+              reader=csv.DictReader(f, dialect=dialect)
+              out=[]
+              for r in reader:
+                  def v(*keys):
+                      for k in keys:
+                          if k in r and r[k]:
+                              return r[k].strip()
+                      return ""
+                  nome=v("NM_URNA_CANDIDATO","NM_CANDIDATO")
+                  cargo=v("DS_CARGO")
+                  numero=v("NR_CANDIDATO")
+                  if not (nome and cargo and numero): continue
+                  sq=v("SQ_CANDIDATO")
+                  out.append({
+                      "nome":nome,
+                      "partido":v("SG_PARTIDO"),
+                      "cargo":cargo,
+                      "numero":numero,
+                      "sq":sq,
+                      "situacao":v("DS_SITUACAO_CANDIDATURA","DS_SITUACAO"),
+                      "foto":("https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/fotos/sp/"+sq+".jpeg") if sq else ""
+                  })
+          with open("data/candidatos-sp.json","w",encoding="utf-8") as f:
+              json.dump(out,f,ensure_ascii=False,separators=(",",":"))
+          print(f"Arquivo gerado: {len(out)} candidatos")
+          PY
+      - name: Publicar dados atualizados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/candidatos-sp.json
+          git diff --cached --quiet && echo "Sem alterações" || (git commit -m "Atualiza candidatos SP pelo TSE" && git push)
