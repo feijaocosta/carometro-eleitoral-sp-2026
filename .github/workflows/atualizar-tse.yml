@@ -2,6 +2,8 @@ name: Atualizar dados TSE
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
   schedule:
     - cron: "0 */6 * * *"
 
@@ -10,25 +12,37 @@ permissions:
 
 jobs:
   update:
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, 'Atualiza candidatos SP pelo TSE')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Baixar pacote oficial do TSE
+
+      - name: Baixar dados oficiais de candidaturas
         run: |
-          mkdir -p tmp data
+          mkdir -p tmp/tse data fotos
           curl -L --fail --retry 3 "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2026.zip" -o tmp/tse.zip
           unzip -o tmp/tse.zip -d tmp/tse
+
+      - name: Baixar fotos oficiais de SP
+        run: |
+          rm -rf tmp/fotos fotos
+          mkdir -p tmp/fotos fotos
+          curl -L --fail --retry 3 "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/fotos/foto_cand2026_SP_div.zip" -o tmp/fotos.zip
+          unzip -o tmp/fotos.zip -d tmp/fotos
+          find tmp/fotos -type f \( -iname "*.jpeg" -o -iname "*.jpg" \) -exec cp {} fotos/ \;
+          echo "Fotos encontradas:"
+          find fotos -type f | wc -l
+
       - name: Gerar JSON de São Paulo
         run: |
           python3 <<'PY'
           import csv, json, glob, os
           files = glob.glob("tmp/tse/**/*SP*.csv", recursive=True)
           if not files:
-              files = glob.glob("tmp/tse/**/*.csv", recursive=True)
-          if not files:
-              raise SystemExit("Nenhum CSV encontrado no pacote do TSE")
+              raise SystemExit("Nenhum CSV de SP encontrado no pacote do TSE")
           sp = [f for f in files if "_SP" in os.path.basename(f).upper()]
           path = sp[0] if sp else files[0]
+
           with open(path, "r", encoding="latin-1", newline="") as f:
               sample=f.read(8192); f.seek(0)
               dialect=csv.Sniffer().sniff(sample, delimiters=";,|")
@@ -45,6 +59,12 @@ jobs:
                   numero=v("NR_CANDIDATO")
                   if not (nome and cargo and numero): continue
                   sq=v("SQ_CANDIDATO")
+                  foto=""
+                  if sq:
+                      for ext in (".jpeg",".jpg",".JPEG",".JPG"):
+                          if os.path.exists(os.path.join("fotos",sq+ext)):
+                              foto="fotos/"+sq+ext
+                              break
                   out.append({
                       "nome":nome,
                       "partido":v("SG_PARTIDO"),
@@ -52,15 +72,24 @@ jobs:
                       "numero":numero,
                       "sq":sq,
                       "situacao":v("DS_SITUACAO_CANDIDATURA","DS_SITUACAO"),
-                      "foto":("https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/fotos/sp/"+sq+".jpeg") if sq else ""
+                      "foto":foto
                   })
+
           with open("data/candidatos-sp.json","w",encoding="utf-8") as f:
               json.dump(out,f,ensure_ascii=False,separators=(",",":"))
-          print(f"Arquivo gerado: {len(out)} candidatos")
+          com_foto=sum(1 for x in out if x["foto"])
+          print(f"Candidatos: {len(out)}")
+          print(f"Com foto: {com_foto}")
           PY
-      - name: Publicar dados atualizados
+
+      - name: Publicar dados e fotos atualizados
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/candidatos-sp.json
-          git diff --cached --quiet && echo "Sem alterações" || (git commit -m "Atualiza candidatos SP pelo TSE" && git push)
+          git add data/candidatos-sp.json fotos/
+          if git diff --cached --quiet; then
+            echo "Sem alterações"
+          else
+            git commit -m "Atualiza candidatos SP pelo TSE"
+            git push
+          fi
