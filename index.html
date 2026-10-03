@@ -1,24 +1,133 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Carômetro Eleitoral SP 2026</title>
 <style>
-:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f5f6f8}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1200px;margin:auto;padding:22px 16px}header{margin-bottom:18px}h1{margin:0;font-size:28px}.sub{margin:5px 0;color:#667085}.toolbar{background:#fff;border:1px solid #e1e5eb;border-radius:14px;padding:12px;display:grid;grid-template-columns:1.5fr 1fr 1fr auto;gap:9px;margin-bottom:18px;position:sticky;top:8px;z-index:5;box-shadow:0 4px 18px #0000000b}input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;border-radius:10px;background:#fff}button{cursor:pointer;font-weight:700}.status{font-size:12px;color:#667085;margin:8px 0 16px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:15px}.card{background:#fff;border:1px solid #e0e4ea;border-radius:15px;overflow:hidden;box-shadow:0 2px 9px #0000000a}.photo{width:100%;aspect-ratio:1/1;background:#e9edf2;object-fit:cover;display:block}.fallback{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:42px;color:#98a2b3}.info{padding:13px}.name{font-weight:800;font-size:17px;line-height:1.15}.meta{color:#667085;font-size:13px;margin-top:5px}.num{font-size:24px;font-weight:900;margin-top:8px}.badge{display:inline-block;background:#eef2f6;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800;margin-top:7px}.empty{grid-column:1/-1;padding:35px;text-align:center;color:#667085;background:#fff;border-radius:14px}.help{background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;margin-top:20px;color:#475467;font-size:13px}@media(max-width:750px){.toolbar{grid-template-columns:1fr 1fr;position:static}.toolbar input{grid-column:1/-1}}@media(max-width:460px){.toolbar{grid-template-columns:1fr}.toolbar input{grid-column:auto}}
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f5f6f8}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:1200px;margin:auto;padding:22px 16px}
+header{margin-bottom:18px}h1{margin:0;font-size:28px}.sub{margin:5px 0;color:#667085}
+.toolbar{background:#fff;border:1px solid #e1e5eb;border-radius:14px;padding:12px;display:grid;grid-template-columns:1.5fr 1fr 1fr auto;gap:9px;margin-bottom:18px;position:sticky;top:8px;z-index:5;box-shadow:0 4px 18px #0000000b}
+input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;border-radius:10px;background:#fff}button{cursor:pointer;font-weight:700}
+.status{font-size:12px;color:#667085;margin:8px 0 16px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:15px}
+.card{background:#fff;border:1px solid #e0e4ea;border-radius:15px;overflow:hidden;box-shadow:0 2px 9px #0000000a}.photo{width:100%;aspect-ratio:1/1;background:#e9edf2;object-fit:cover;display:block}.fallback{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:42px;color:#98a2b3}
+.info{padding:13px}.name{font-weight:800;font-size:17px;line-height:1.15}.meta{color:#667085;font-size:13px;margin-top:5px}.num{font-size:24px;font-weight:900;margin-top:8px}.badge{display:inline-block;background:#eef2f6;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800;margin-top:7px}
+.empty{grid-column:1/-1;padding:35px;text-align:center;color:#667085;background:#fff;border-radius:14px}.help{background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;margin-top:20px;color:#475467;font-size:13px}
+@media(max-width:750px){.toolbar{grid-template-columns:1fr 1fr;position:static}.toolbar input{grid-column:1/-1}}@media(max-width:460px){.toolbar{grid-template-columns:1fr}.toolbar input{grid-column:auto}}
 </style>
-</head><body><div class="wrap">
+</head>
+<body>
+<div class="wrap">
 <header><h1>Carômetro Eleitoral — SP 2026</h1><p class="sub">Candidaturas de São Paulo • dados oficiais do TSE</p></header>
-<div class="toolbar"><input id="q" placeholder="🔎 Nome ou número" oninput="render()"><select id="cargo" onchange="render()"><option value="">Todos os cargos</option></select><select id="partido" onchange="render()"><option value="">Todos os partidos</option></select><button onclick="loadData()">↻ Atualizar</button></div>
-<div id="status" class="status">Carregando dados...</div><div id="grid" class="grid"></div>
-<div class="help"><strong>Fonte:</strong> Tribunal Superior Eleitoral — Portal de Dados Abertos. Os dados são processados automaticamente pelo GitHub a partir do pacote oficial de candidaturas de 2026. O TSE informa atualização dos arquivos 4 vezes ao dia.</div>
+<div class="toolbar">
+<input id="q" placeholder="🔎 Nome ou número">
+<select id="cargo"><option value="">Todos os cargos</option></select>
+<select id="partido"><option value="">Todos os partidos</option></select>
+<button id="refresh">↻ Atualizar</button>
+</div>
+<div id="status" class="status">Carregando dados...</div>
+<div id="grid" class="grid"></div>
+<div class="help"><strong>Fonte:</strong> Tribunal Superior Eleitoral — Portal de Dados Abertos. Este carômetro contém exclusivamente candidaturas do estado de São Paulo.</div>
 </div>
 <script>
 let candidatos=[];
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function initials(n){return n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()}
-function uniq(a){return [...new Set(a.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"))}
-function populateFilters(){const cargos=uniq(candidatos.map(x=>x.cargo)),partidos=uniq(candidatos.map(x=>x.partido));document.getElementById("cargo").innerHTML='<option value="">Todos os cargos</option>'+cargos.map(x=>`<option>${esc(x)}</option>`).join("");document.getElementById("partido").innerHTML='<option value="">Todos os partidos</option>'+partidos.map(x=>`<option>${esc(x)}</option>`).join("")}
-function render(){const q=document.getElementById("q").value.toLocaleLowerCase("pt-BR"),c=document.getElementById("cargo").value,p=document.getElementById("partido").value;const list=candidatos.filter(x=>(!q||x.nome.toLocaleLowerCase("pt-BR").includes(q)||x.numero.includes(q))&&(!c||x.cargo===c)&&(!p||x.partido===p));document.getElementById("status").textContent=`${list.length.toLocaleString("pt-BR")} candidato(s) encontrado(s)`;document.getElementById("grid").innerHTML=list.length?list.map(x=>`<article class="card">${x.foto?`<img class="photo" src="${esc(x.foto)}" alt="Foto de ${esc(x.nome)}" loading="lazy" onerror="this.outerHTML='<div class="photo fallback">${initials(esc(x.nome))}</div>'">`:`<div class="photo fallback">${initials(x.nome)}</div>`}<div class="info"><div class="name">${esc(x.nome)}</div><div class="meta">${esc(x.partido)}</div><div class="meta">${esc(x.cargo)}</div><div class="num">${esc(x.numero)}</div><span class="badge">${esc(x.situacao||"Registro")}</span></div></article>`).join(""):'<div class="empty">Nenhum candidato encontrado.</div>'}
-async function loadData(){try{document.getElementById("status").textContent="Carregando base TSE processada…";const r=await fetch("data/candidatos-sp.json?"+Date.now());if(!r.ok)throw new Error();candidatos=await r.json();populateFilters();render()}catch(e){document.getElementById("status").textContent="Aguardando a primeira atualização da base oficial do TSE.";document.getElementById("grid").innerHTML='<div class="empty">O GitHub ainda está processando os dados. Recarregue em instantes.</div>'}}
+const q=document.getElementById("q");
+const cargo=document.getElementById("cargo");
+const partido=document.getElementById("partido");
+const statusEl=document.getElementById("status");
+const grid=document.getElementById("grid");
+
+function initials(name){
+ return String(name||"").trim().split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0)).join("").toUpperCase()||"?";
+}
+function uniqueSorted(values){
+ return [...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"pt-BR"));
+}
+function populateFilters(){
+ cargo.replaceChildren(new Option("Todos os cargos",""));
+ partido.replaceChildren(new Option("Todos os partidos",""));
+ uniqueSorted(candidatos.map(x=>x.cargo)).forEach(x=>cargo.add(new Option(x,x)));
+ uniqueSorted(candidatos.map(x=>x.partido)).forEach(x=>partido.add(new Option(x,x)));
+}
+function fallbackPhoto(name){
+ const el=document.createElement("div");
+ el.className="photo fallback";
+ el.textContent=initials(name);
+ return el;
+}
+function makeCard(x){
+ const article=document.createElement("article");
+ article.className="card";
+ let photo;
+ if(x.foto){
+   photo=document.createElement("img");
+   photo.className="photo";
+   photo.src=x.foto;
+   photo.alt="Foto de "+x.nome;
+   photo.loading="lazy";
+   photo.addEventListener("error",()=>photo.replaceWith(fallbackPhoto(x.nome)),{once:true});
+ }else{
+   photo=fallbackPhoto(x.nome);
+ }
+ article.appendChild(photo);
+ const info=document.createElement("div");
+ info.className="info";
+ const name=document.createElement("div");name.className="name";name.textContent=x.nome;info.appendChild(name);
+ const party=document.createElement("div");party.className="meta";party.textContent=x.partido;info.appendChild(party);
+ const office=document.createElement("div");office.className="meta";office.textContent=x.cargo;info.appendChild(office);
+ const number=document.createElement("div");number.className="num";number.textContent=x.numero;info.appendChild(number);
+ const badge=document.createElement("span");badge.className="badge";badge.textContent=x.situacao||"Registro";info.appendChild(badge);
+ article.appendChild(info);
+ return article;
+}
+function render(){
+ const query=q.value.trim().toLocaleLowerCase("pt-BR");
+ const selectedCargo=cargo.value;
+ const selectedParty=partido.value;
+ const list=candidatos.filter(x=>
+   (!query || String(x.nome||"").toLocaleLowerCase("pt-BR").includes(query) || String(x.numero||"").includes(query)) &&
+   (!selectedCargo || x.cargo===selectedCargo) &&
+   (!selectedParty || x.partido===selectedParty)
+ );
+ statusEl.textContent=list.length.toLocaleString("pt-BR")+" candidato(s) encontrado(s)";
+ grid.replaceChildren();
+ if(!list.length){
+   const empty=document.createElement("div");
+   empty.className="empty";
+   empty.textContent="Nenhum candidato encontrado.";
+   grid.appendChild(empty);
+   return;
+ }
+ const frag=document.createDocumentFragment();
+ list.forEach(x=>frag.appendChild(makeCard(x)));
+ grid.appendChild(frag);
+}
+async function loadData(){
+ statusEl.textContent="Carregando base oficial do TSE…";
+ grid.replaceChildren();
+ try{
+   const response=await fetch("data/candidatos-sp.json?"+Date.now(),{cache:"no-store"});
+   if(!response.ok)throw new Error("HTTP "+response.status);
+   const data=await response.json();
+   if(!Array.isArray(data))throw new Error("Formato inválido");
+   candidatos=data;
+   populateFilters();
+   render();
+ }catch(error){
+   statusEl.textContent="Não foi possível carregar a base.";
+   const empty=document.createElement("div");
+   empty.className="empty";
+   empty.textContent="A base de candidatos ainda está sendo atualizada. Tente novamente.";
+   grid.appendChild(empty);
+   console.error(error);
+ }
+}
+q.addEventListener("input",render);
+cargo.addEventListener("change",render);
+partido.addEventListener("change",render);
+document.getElementById("refresh").addEventListener("click",loadData);
 loadData();
-</script></body></html>
+</script>
+</body>
+</html>
