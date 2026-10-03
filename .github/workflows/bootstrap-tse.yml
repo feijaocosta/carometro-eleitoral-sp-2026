@@ -1,0 +1,47 @@
+name: Inicializar dados TSE
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baixar e processar TSE
+        run: |
+          mkdir -p tmp data
+          curl -L --fail --retry 3 "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2026.zip" -o tmp/tse.zip
+          unzip -o tmp/tse.zip -d tmp/tse
+          python3 <<'PY'
+          import csv,json,glob,os
+          files=glob.glob("tmp/tse/**/*SP*.csv",recursive=True) or glob.glob("tmp/tse/**/*.csv",recursive=True)
+          if not files: raise SystemExit("CSV não encontrado")
+          path=next((f for f in files if "_SP" in os.path.basename(f).upper()),files[0])
+          with open(path,encoding="latin-1",newline="") as f:
+              sample=f.read(8192); f.seek(0); dialect=csv.Sniffer().sniff(sample,delimiters=";,|"); rows=csv.DictReader(f,dialect=dialect)
+              out=[]
+              for r in rows:
+                  def v(*ks):
+                      for k in ks:
+                          if r.get(k): return r[k].strip()
+                      return ""
+                  nome,cargo,num=v("NM_URNA_CANDIDATO","NM_CANDIDATO"),v("DS_CARGO"),v("NR_CANDIDATO")
+                  if not(nome and cargo and num): continue
+                  sq=v("SQ_CANDIDATO")
+                  out.append({"nome":nome,"partido":v("SG_PARTIDO"),"cargo":cargo,"numero":num,"sq":sq,"situacao":v("DS_SITUACAO_CANDIDATURA","DS_SITUACAO"),"foto":("https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/fotos/sp/"+sq+".jpeg") if sq else ""})
+          with open("data/candidatos-sp.json","w",encoding="utf-8") as f: json.dump(out,f,ensure_ascii=False,separators=(",",":"))
+          print("Candidatos:",len(out))
+          PY
+      - name: Publicar dados e remover bootstrap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/candidatos-sp.json
+          git rm .github/workflows/bootstrap-tse.yml
+          git commit -m "Inicializa dados de candidatos pelo TSE"
+          git push
