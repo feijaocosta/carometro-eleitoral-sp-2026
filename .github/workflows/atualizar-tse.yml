@@ -23,77 +23,64 @@ jobs:
           curl -L --fail --retry 3 "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2026.zip" -o tmp/tse.zip
           unzip -o tmp/tse.zip -d tmp/tse
 
-      - name: Baixar fotos oficiais de SP
+      - name: Baixar fotos oficiais de SP e Presidencia
         run: |
           rm -rf tmp/fotos fotos
           mkdir -p tmp/fotos fotos
-          curl -L --fail --retry 3 "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/fotos/foto_cand2026_SP_div.zip" -o tmp/fotos.zip
-          unzip -o tmp/fotos.zip -d tmp/fotos
-          find tmp/fotos -type f \( -iname "*.jpeg" -o -iname "*.jpg" \) -exec cp {} fotos/ \;
-          echo "Fotos encontradas:"
-          find fotos -type f | wc -l
-
-      - name: Gerar JSON de São Paulo
-        run: |
-          python3 <<'PY'
-          import csv, json, glob, os
-          files = glob.glob("tmp/tse/**/*SP*.csv", recursive=True)
-          if not files:
-              raise SystemExit("Nenhum CSV de SP encontrado no pacote do TSE")
-          sp = [f for f in files if "_SP" in os.path.basename(f).upper()]
-          path = sp[0] if sp else files[0]
-
-          with open(path, "r", encoding="latin-1", newline="") as f:
-              sample=f.read(8192); f.seek(0)
-              dialect=csv.Sniffer().sniff(sample, delimiters=";,|")
-              reader=csv.DictReader(f, dialect=dialect)
-              out=[]
-              for r in reader:
-                  def v(*keys):
-                      for k in keys:
-                          if k in r and r[k]:
-                              return r[k].strip()
-                      return ""
-                  nome=v("NM_URNA_CANDIDATO","NM_CANDIDATO")
-                  cargo=v("DS_CARGO")
-                  numero=v("NR_CANDIDATO")
-                  if not (nome and cargo and numero): continue
-                  sq=v("SQ_CANDIDATO")
-                  foto=""
-                  if sq:
-                      for prefix in ("FSP","SP"):
-                          for suffix in ("_div.jpg","_div.jpeg",".jpg",".jpeg"):
-                              candidate=prefix+sq+suffix
-                              if os.path.exists(os.path.join("fotos",candidate)):
-                                  foto="fotos/"+candidate
-                                  break
-                          if foto:
-                              break
-                  out.append({
-                      "nome":nome,
-                      "partido":v("SG_PARTIDO"),
-                      "cargo":cargo,
-                      "numero":numero,
-                      "sq":sq,
-                      "situacao":v("DS_SITUACAO_CANDIDATURA","DS_SITUACAO"),
-                      "foto":foto
-                  })
-
-          with open("data/candidatos-sp.json","w",encoding="utf-8") as f:
-              json.dump(out,f,ensure_ascii=False,separators=(",",":"))
-          com_foto=sum(1 for x in out if x["foto"])
-          print(f"Candidatos: {len(out)}")
-          print(f"Com foto: {com_foto}")
+          curl -L --fail --retry 3 "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/fotos/foto_cand2026_SP_div.zip" -o tmp/fotos-sp.zip
+          curl -L --fail --retry 3 "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/fotos/foto_cand2026_BR_div.zip" -o tmp/fotos-br.zip
+          unzip -o tmp/fotos-sp.zip -d tmp/fotos
+          unzip -o tmp/fotos-br.zip -d tmp/fotos
+          python3 - <<'PY'
+          import glob, os, shutil
+          for f in glob.glob('tmp/fotos/**/*.jpg', recursive=True) + glob.glob('tmp/fotos/**/*.jpeg', recursive=True):
+              shutil.copy2(f, os.path.join('fotos', os.path.basename(f)))
+          print('Fotos:', len(glob.glob('fotos/*')))
           PY
 
-      - name: Publicar dados e fotos atualizados
+      - name: Gerar JSON de SP mais Presidencia
+        run: |
+          python3 - <<'PY'
+          import csv, json, glob, os
+          sp_files = glob.glob('tmp/tse/**/*_SP.csv', recursive=True)
+          br_files = glob.glob('tmp/tse/**/*_BR.csv', recursive=True)
+          if not sp_files: raise SystemExit('Nenhum CSV de SP encontrado')
+          sp_path = sp_files[0]
+          paths = [sp_path] + ([br_files[0]] if br_files else [])
+          out=[]
+          for path in paths:
+              with open(path, 'r', encoding='latin-1', newline='') as f:
+                  sample=f.read(8192); f.seek(0)
+                  dialect=csv.Sniffer().sniff(sample, delimiters=';,|')
+                  reader=csv.DictReader(f, dialect=dialect)
+                  for r in reader:
+                      def v(*keys):
+                          for k in keys:
+                              if k in r and r[k]: return r[k].strip()
+                          return ''
+                      nome=v('NM_URNA_CANDIDATO','NM_CANDIDATO')
+                      cargo=v('DS_CARGO')
+                      numero=v('NR_CANDIDATO')
+                      if not (nome and cargo and numero): continue
+                      if path != sp_path and 'PRESIDENTE' not in cargo.upper(): continue
+                      sq=v('SQ_CANDIDATO')
+                      foto=''
+                      for prefix in ('FSP','FBR','BR','SP'):
+                          for suffix in ('_div.jpg','_div.jpeg','.jpg','.jpeg'):
+                              candidate=prefix+sq+suffix
+                              if os.path.exists(os.path.join('fotos',candidate)):
+                                  foto='fotos/'+candidate; break
+                          if foto: break
+                      out.append({'nome':nome,'partido':v('SG_PARTIDO'),'cargo':cargo,'numero':numero,'sq':sq,'situacao':v('DS_SITUACAO_CANDIDATURA','DS_SITUACAO'),'foto':foto})
+          with open('data/candidatos-sp.json','w',encoding='utf-8') as f: json.dump(out,f,ensure_ascii=False,separators=(',',':'))
+          print('Total:',len(out))
+          print('Com foto:',sum(1 for x in out if x['foto']))
+          print('Presidente:',sum(1 for x in out if 'PRESIDENTE' in x['cargo'].upper()))
+          PY
+
+      - name: Publicar dados atualizados
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/candidatos-sp.json fotos/
-          if git diff --cached --quiet; then
-            echo "Sem alterações"
-          else
-            git commit -m "Atualiza candidatos SP pelo TSE"
-            git push
-          fi
+          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Atualiza candidatos SP pelo TSE"; git push; fi
