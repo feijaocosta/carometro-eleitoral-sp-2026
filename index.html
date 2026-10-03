@@ -1,81 +1,24 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Carômetro Eleitoral SP 2026 — TSE</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carômetro Eleitoral SP 2026</title>
 <style>
-:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f5f6f8}
-*{box-sizing:border-box}body{margin:0}.wrap{max-width:1200px;margin:auto;padding:22px 16px}
-header{margin-bottom:18px}h1{margin:0;font-size:28px}.sub{margin:5px 0 0;color:#667085}
-.toolbar{background:#fff;border:1px solid #e1e5eb;border-radius:14px;padding:12px;display:grid;grid-template-columns:1.5fr 1fr 1fr auto;gap:9px;margin-bottom:18px;position:sticky;top:8px;z-index:5;box-shadow:0 4px 18px #0000000b}
-input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;border-radius:10px;background:#fff}
-button{cursor:pointer;font-weight:700}.status{font-size:12px;color:#667085;margin:8px 0 16px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:15px}
-.card{background:#fff;border:1px solid #e0e4ea;border-radius:15px;overflow:hidden;box-shadow:0 2px 9px #0000000a}.photo{width:100%;aspect-ratio:1/1;background:#e9edf2;object-fit:cover;display:block}.fallback{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:42px;color:#98a2b3}
-.info{padding:13px}.name{font-weight:800;font-size:17px;line-height:1.15}.meta{color:#667085;font-size:13px;margin-top:5px}.num{font-size:24px;font-weight:900;margin-top:8px}.badge{display:inline-block;background:#eef2f6;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800;margin-top:7px}
-.empty{grid-column:1/-1;padding:35px;text-align:center;color:#667085;background:#fff;border-radius:14px}
-.help{background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;margin-top:20px;color:#475467;font-size:13px}
-@media(max-width:750px){.toolbar{grid-template-columns:1fr 1fr;position:static}.toolbar input{grid-column:1/-1}}@media(max-width:460px){.toolbar{grid-template-columns:1fr}.toolbar input{grid-column:auto}}
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f5f6f8}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1200px;margin:auto;padding:22px 16px}header{margin-bottom:18px}h1{margin:0;font-size:28px}.sub{margin:5px 0;color:#667085}.toolbar{background:#fff;border:1px solid #e1e5eb;border-radius:14px;padding:12px;display:grid;grid-template-columns:1.5fr 1fr 1fr auto;gap:9px;margin-bottom:18px;position:sticky;top:8px;z-index:5;box-shadow:0 4px 18px #0000000b}input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;border-radius:10px;background:#fff}button{cursor:pointer;font-weight:700}.status{font-size:12px;color:#667085;margin:8px 0 16px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:15px}.card{background:#fff;border:1px solid #e0e4ea;border-radius:15px;overflow:hidden;box-shadow:0 2px 9px #0000000a}.photo{width:100%;aspect-ratio:1/1;background:#e9edf2;object-fit:cover;display:block}.fallback{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:42px;color:#98a2b3}.info{padding:13px}.name{font-weight:800;font-size:17px;line-height:1.15}.meta{color:#667085;font-size:13px;margin-top:5px}.num{font-size:24px;font-weight:900;margin-top:8px}.badge{display:inline-block;background:#eef2f6;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800;margin-top:7px}.empty{grid-column:1/-1;padding:35px;text-align:center;color:#667085;background:#fff;border-radius:14px}.help{background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;margin-top:20px;color:#475467;font-size:13px}@media(max-width:750px){.toolbar{grid-template-columns:1fr 1fr;position:static}.toolbar input{grid-column:1/-1}}@media(max-width:460px){.toolbar{grid-template-columns:1fr}.toolbar input{grid-column:auto}}
 </style>
-</head>
-<body>
-<div class="wrap">
-<header><h1>Carômetro Eleitoral — SP 2026</h1><p class="sub">Base oficial de candidaturas do Tribunal Superior Eleitoral (TSE).</p></header>
-<div class="toolbar">
-<input id="q" placeholder="🔎 Nome ou número" oninput="render()">
-<select id="cargo" onchange="render()"><option value="">Todos os cargos</option></select>
-<select id="partido" onchange="render()"><option value="">Todos os partidos</option></select>
-<button onclick="loadTSE()">↻ Atualizar TSE</button>
+</head><body><div class="wrap">
+<header><h1>Carômetro Eleitoral — SP 2026</h1><p class="sub">Candidaturas de São Paulo • dados oficiais do TSE</p></header>
+<div class="toolbar"><input id="q" placeholder="🔎 Nome ou número" oninput="render()"><select id="cargo" onchange="render()"><option value="">Todos os cargos</option></select><select id="partido" onchange="render()"><option value="">Todos os partidos</option></select><button onclick="loadData()">↻ Atualizar</button></div>
+<div id="status" class="status">Carregando dados...</div><div id="grid" class="grid"></div>
+<div class="help"><strong>Fonte:</strong> Tribunal Superior Eleitoral — Portal de Dados Abertos. Os dados são processados automaticamente pelo GitHub a partir do pacote oficial de candidaturas de 2026. O TSE informa atualização dos arquivos 4 vezes ao dia.</div>
 </div>
-<div id="status" class="status">Preparando conexão com a base oficial...</div>
-<div id="grid" class="grid"></div>
-<div class="help"><strong>Fonte:</strong> Portal de Dados Abertos / DivulgaCandContas do TSE. A página consulta o pacote oficial de candidaturas de 2026 e filtra São Paulo. As fotos são buscadas pela chave oficial da candidatura no CDN do TSE.</div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
-const TSE_ZIP="https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2026.zip";
-const TSE_PHOTO_BASE="https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/fotos/sp/";
 let candidatos=[];
-function val(o,...keys){for(const k of keys){if(o[k]!==undefined)return (o[k]??"").toString().trim()}return ""}
-function parseCSV(txt){
- const lines=txt.replace(/^\uFEFF/,"").split(/\r?\n/).filter(Boolean); if(!lines.length)return [];
- const sep=lines[0].includes(";")?";":","; const rows=[]; let row=[],field="",quoted=false;
- for(let i=0;i<txt.length;i++){const c=txt[i];
-  if(c=='"'){if(quoted&&txt[i+1]=='"'){field+='"';i++}else quoted=!quoted}
-  else if(c==sep&&!quoted){row.push(field);field=""}
-  else if((c=="\n"||c=="\r")&&!quoted){if(c=="\r"&&txt[i+1]=="\n")i++;row.push(field);field="";if(row.some(x=>x)){rows.push(row)}row=[]}
-  else field+=c;
- }
- if(field||row.length){row.push(field);rows.push(row)}
- const headers=rows.shift().map(x=>x.trim()); return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,(r[i]||"").trim()])));
-}
-function uniq(arr){return [...new Set(arr.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"))}
-function initials(n){return n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()}
-function photoURL(x){const sq=val(x,"SQ_CANDIDATO","sq_candidato");return sq?TSE_PHOTO_BASE+sq+".jpeg":""}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function populateFilters(){
- const cargos=uniq(candidatos.map(x=>x.cargo)),partidos=uniq(candidatos.map(x=>x.partido));
- document.getElementById("cargo").innerHTML='<option value="">Todos os cargos</option>'+cargos.map(x=>`<option>${esc(x)}</option>`).join("");
- document.getElementById("partido").innerHTML='<option value="">Todos os partidos</option>'+partidos.map(x=>`<option>${esc(x)}</option>`).join("");
-}
-function render(){
- const q=document.getElementById("q").value.toLocaleLowerCase("pt-BR"),c=document.getElementById("cargo").value,p=document.getElementById("partido").value;
- const list=candidatos.filter(x=>(!q||x.nome.toLocaleLowerCase("pt-BR").includes(q)||x.numero.includes(q))&&(!c||x.cargo===c)&&(!p||x.partido===p));
- document.getElementById("status").textContent=`${list.length.toLocaleString("pt-BR")} candidato(s) encontrado(s)`;
- document.getElementById("grid").innerHTML=list.length?list.map(x=>{const url=photoURL(x);return `<article class="card">${url?`<img class="photo" src="${url}" alt="Foto de ${esc(x.nome)}" loading="lazy" onerror="this.outerHTML='<div class="photo fallback">${initials(esc(x.nome))}</div>'">`:`<div class="photo fallback">${initials(x.nome)}</div>`}<div class="info"><div class="name">${esc(x.nome)}</div><div class="meta">${esc(x.partido)}</div><div class="meta">${esc(x.cargo)}</div><div class="num">${esc(x.numero)}</div><span class="badge">${esc(x.situacao||"Registro")}</span></div></article>`}).join(""):'<div class="empty">Nenhum candidato encontrado.</div>';
-}
-async function loadTSE(){
- const status=document.getElementById("status");status.textContent="Baixando a base oficial do TSE…";
- try{
-  const r=await fetch(TSE_ZIP);if(!r.ok)throw new Error("HTTP "+r.status);
-  const zip=await JSZip.loadAsync(await r.arrayBuffer());const file=Object.keys(zip.files).find(n=>/consulta_cand_2026_SP\.csv$/i.test(n));
-  if(!file)throw new Error("CSV de SP não encontrado no pacote do TSE.");
-  status.textContent="Lendo candidaturas de São Paulo…";const txt=await zip.files[file].async("string");const rows=parseCSV(txt);
-  candidatos=rows.map(x=>({nome:val(x,"NM_URNA_CANDIDATO","NM_CANDIDATO"),partido:val(x,"SG_PARTIDO"),cargo:val(x,"DS_CARGO"),numero:val(x,"NR_CANDIDATO"),sq:val(x,"SQ_CANDIDATO"),situacao:val(x,"DS_SITUACAO_CANDIDATURA","DS_SITUACAO")})).filter(x=>x.nome&&x.cargo&&x.numero);
-  populateFilters();render();
- }catch(e){status.textContent="Não foi possível carregar automaticamente a base do TSE: "+e.message;document.getElementById("grid").innerHTML='<div class="empty">Não foi possível carregar a base automaticamente. Verifique a conexão e tente “Atualizar TSE”.</div>';console.error(e)}
-}
-loadTSE();
-</script>
-</body>
-</html>
+function initials(n){return n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase()}
+function uniq(a){return [...new Set(a.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"))}
+function populateFilters(){const cargos=uniq(candidatos.map(x=>x.cargo)),partidos=uniq(candidatos.map(x=>x.partido));document.getElementById("cargo").innerHTML='<option value="">Todos os cargos</option>'+cargos.map(x=>`<option>${esc(x)}</option>`).join("");document.getElementById("partido").innerHTML='<option value="">Todos os partidos</option>'+partidos.map(x=>`<option>${esc(x)}</option>`).join("")}
+function render(){const q=document.getElementById("q").value.toLocaleLowerCase("pt-BR"),c=document.getElementById("cargo").value,p=document.getElementById("partido").value;const list=candidatos.filter(x=>(!q||x.nome.toLocaleLowerCase("pt-BR").includes(q)||x.numero.includes(q))&&(!c||x.cargo===c)&&(!p||x.partido===p));document.getElementById("status").textContent=`${list.length.toLocaleString("pt-BR")} candidato(s) encontrado(s)`;document.getElementById("grid").innerHTML=list.length?list.map(x=>`<article class="card">${x.foto?`<img class="photo" src="${esc(x.foto)}" alt="Foto de ${esc(x.nome)}" loading="lazy" onerror="this.outerHTML='<div class="photo fallback">${initials(esc(x.nome))}</div>'">`:`<div class="photo fallback">${initials(x.nome)}</div>`}<div class="info"><div class="name">${esc(x.nome)}</div><div class="meta">${esc(x.partido)}</div><div class="meta">${esc(x.cargo)}</div><div class="num">${esc(x.numero)}</div><span class="badge">${esc(x.situacao||"Registro")}</span></div></article>`).join(""):'<div class="empty">Nenhum candidato encontrado.</div>'}
+async function loadData(){try{document.getElementById("status").textContent="Carregando base TSE processada…";const r=await fetch("data/candidatos-sp.json?"+Date.now());if(!r.ok)throw new Error();candidatos=await r.json();populateFilters();render()}catch(e){document.getElementById("status").textContent="Aguardando a primeira atualização da base oficial do TSE.";document.getElementById("grid").innerHTML='<div class="empty">O GitHub ainda está processando os dados. Recarregue em instantes.</div>'}}
+loadData();
+</script></body></html>
