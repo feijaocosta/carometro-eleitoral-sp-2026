@@ -80,7 +80,7 @@ function makeCard(x){
  const party=document.createElement("div");party.className="meta";party.textContent=x.partido;info.appendChild(party);
  const office=document.createElement("div");office.className="meta";office.textContent=x.cargo;info.appendChild(office);
  const number=document.createElement("div");number.className="num";number.textContent=x.numero;info.appendChild(number);
- const badge=document.createElement("span");badge.className="badge";badge.textContent=x.situacao||"Registro";info.appendChild(badge);
+ const badge=document.createElement("span");badge.className="badge";badge.textContent="Situação: "+(x.situacao||"Não informada");info.appendChild(badge);
  article.appendChild(info);
  return article;
 }
@@ -104,6 +104,13 @@ function render(){
    grid.appendChild(empty);
    return;
  }
+ const activeTerms=["APTO","APTA","CONCORRENDO"];
+ list.sort((a,b)=>{
+   const aActive=activeTerms.some(t=>String(a.situacao||"").toUpperCase().includes(t));
+   const bActive=activeTerms.some(t=>String(b.situacao||"").toUpperCase().includes(t));
+   if(aActive!==bActive)return aActive?-1:1;
+   return String(a.nome||"").localeCompare(String(b.nome||""),"pt-BR");
+ });
  const frag=document.createDocumentFragment();
  list.forEach(x=>frag.appendChild(makeCard(x)));
  grid.appendChild(frag);
