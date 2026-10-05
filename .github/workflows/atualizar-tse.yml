@@ -41,8 +41,31 @@ jobs:
       - name: Baixar resultado parcial oficial do TSE — Deputado Federal SP
         run: |
           mkdir -p data
+          # O TSE determina que o código da eleição seja obtido pelo EA11.
           curl -L --fail --retry 3 \
-            "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/sp/sp-c0006-e06257-u.json" \
+            "https://resultados.tse.jus.br/oficial/ele2026/config/ele-c.json" \
+            -o /tmp/ele-c.json
+
+          ELEICAO=$(python3 - <<'PY'
+          import json
+          with open('/tmp/ele-c.json', encoding='utf-8') as f:
+              d=json.load(f)
+          candidatos=[]
+          for pl in d.get('pl', []):
+              for e in pl.get('e', []):
+                  if str(e.get('t')) == '1' and str(e.get('tp')) == '8':
+                      if any(a.get('cd') == 'sp' and any(str(cp.get('cd')) == '6' for cp in a.get('cp', [])) for a in e.get('abr', [])):
+                          candidatos.append(str(e.get('cd')))
+          if not candidatos:
+              raise SystemExit('Não foi possível localizar a eleição federal de 1º turno com deputado federal em SP no EA11.')
+          print(candidatos[0])
+          PY
+          )
+
+          echo "Código da eleição federal encontrado pelo EA11: $ELEICAO"
+
+          curl -L --fail --retry 3 \
+            "https://resultados.tse.jus.br/oficial/ele2026/dados/sp/sp-c0006-e$(printf '%06d' "$ELEICAO")-u.json" \
             -o data/resultado-sp-deputado-federal.json
 
           python3 - <<'PY'
@@ -96,7 +119,7 @@ jobs:
                           'vagas_agrupamento': agr_vagas
                       }
                       candidatos.append(c)
-                      grupos.setdefault(sigla, []).append(c)
+                      grupos.setdefault(agr_nome, []).append(c)
 
               for sigla, cs in grupos.items():
                   cs.sort(key=lambda x: (-x['votos'], x['numero']))
@@ -106,7 +129,7 @@ jobs:
               agrupamentos.append({
                   'nome': agr_nome,
                   'vagas': agr_vagas,
-                  'votos': num(agr.get('vap')),
+                  'votos': num(agr.get('tvtn')) + num(agr.get('tvtl')),
                   'percentual': agr.get('pvap','')
               })
 
