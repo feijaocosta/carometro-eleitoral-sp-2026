@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Carômetro Eleitoral SP 2026</title>
+<title>Carômetro Eleitoral — Brasil 2026</title>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f5f6f8}
 *{box-sizing:border-box}body{margin:0}.wrap{max-width:1200px;margin:auto;padding:22px 16px}
@@ -13,20 +13,30 @@ input,select,button{font:inherit;padding:11px 12px;border:1px solid #d5dbe4;bord
 .status{font-size:12px;color:#667085;margin:8px 0 16px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:15px}
 .card{background:#fff;border:1px solid #e0e4ea;border-radius:15px;overflow:hidden;box-shadow:0 2px 9px #0000000a}.photo{width:100%;aspect-ratio:1/1;background:#e9edf2;object-fit:cover;display:block}.fallback{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:42px;color:#98a2b3}
 .info{padding:13px}.name{font-weight:800;font-size:17px;line-height:1.15}.meta{color:#667085;font-size:13px;margin-top:5px}.num{font-size:24px;font-weight:900;margin-top:8px}.badge{display:inline-block;background:#eef2f6;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:800;margin-top:7px}
-.empty{grid-column:1/-1;padding:35px;text-align:center;color:#667085;background:#fff;border-radius:14px}.help{background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;margin-top:20px;color:#475467;font-size:13px}
+.resultado{background:#fff;border:2px solid #f0c36a;border-radius:16px;padding:16px;margin:0 0 20px}.result-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.result-head h2{margin:0;font-size:21px}.result-head p{margin:5px 0;color:#8a5a00;font-size:13px;font-weight:700}.result-time{font-size:12px;color:#667085;text-align:right}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:14px 0}.metric{background:#f7f8fa;border-radius:10px;padding:11px}.metric b{display:block;font-size:20px}.metric span{font-size:11px;color:#667085}.result-layout{display:grid;grid-template-columns:1fr 1.5fr;gap:20px}.party-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eef0f3;font-size:13px}.seat{font-weight:900}.elected-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.elected-card{border:1px solid #e5e7eb;border-radius:9px;padding:7px;font-size:12px}.elected-card b{display:block}.elected-card span{color:#667085}.parcial-note{font-size:11px;color:#667085;margin-top:10px}@media(max-width:750px){.metrics{grid-template-columns:1fr 1fr}.result-layout{grid-template-columns:1fr}.elected-grid{grid-template-columns:1fr}}.empty{grid-column:1/-1;padding:35px;text-align:center;color:#667085;background:#fff;border-radius:14px}.help{background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;margin-top:20px;color:#475467;font-size:13px}
 @media(max-width:750px){.toolbar{grid-template-columns:1fr 1fr;position:static}.toolbar input{grid-column:1/-1}}@media(max-width:460px){.toolbar{grid-template-columns:1fr}.toolbar input{grid-column:auto}}
 </style>
 </head>
 <body>
 <div class="wrap">
-<header><h1>Carômetro Eleitoral — SP 2026</h1><p class="sub">Candidaturas 2026 • dados oficiais do TSE</p></header>
+<header><h1>Carômetro Eleitoral — Brasil 2026</h1><p class="sub">Candidaturas 2026 • dados oficiais do TSE</p></header>
 <div class="toolbar">
 <input id="q" placeholder="🔎 Nome ou número">
 <select id="estado"><option value="">Todos os estados</option></select><select id="cargo"><option value="">Todos os cargos</option></select>
 <select id="partido"><option value="">Todos os partidos</option></select>
 <button id="refresh">↻ Atualizar</button>
 </div>
-<div id="status" class="status">Carregando dados...</div>
+<div id="status" class="status">Carregando dados...</div><section id="resultado" class="resultado" hidden>
+  <div class="result-head">
+    <div><h2>Parcial — Deputados Federais de São Paulo</h2><p id="result-warning">Resultado parcial. Tudo pode mudar conforme a apuração avança.</p></div>
+    <div id="result-time" class="result-time"></div>
+  </div>
+  <div class="metrics" id="metrics"></div>
+  <div class="result-layout">
+    <div><h3>Partidos / federações</h3><div id="parties"></div></div>
+    <div><h3>Quem estaria ocupando as 70 cadeiras agora</h3><div id="elected"></div></div>
+  </div>
+</section>
 <div id="grid" class="grid"></div>
 <div class="help"><strong>Fonte:</strong> Tribunal Superior Eleitoral — Portal de Dados Abertos. A base inclui candidaturas de todo o Brasil. Para Presidente, a candidatura é nacional; os demais cargos pertencem a um estado ou ao DF.</div>
 </div>
@@ -115,6 +125,28 @@ function render(){
  list.forEach(x=>frag.appendChild(makeCard(x)));
  grid.appendChild(frag);
 }
+function fmt(n){return Number(n||0).toLocaleString("pt-BR",{maximumFractionDigits:0});}
+function fmt2(n){return Number(n||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});}
+async function renderResultado(){
+ try{
+   const r=await fetch("data/parcial-deputados-sp.json?"+Date.now(),{cache:"no-store"});
+   if(!r.ok) return;
+   const d=await r.json();
+   document.getElementById("resultado").hidden=false;
+   document.getElementById("result-time").textContent="TSE • "+(d.percentual_totalizado||0)+"% totalizado";
+   document.getElementById("result-warning").textContent="PARCIAL — se a apuração terminasse agora. Tudo pode mudar conforme novas seções forem totalizadas.";
+   document.getElementById("metrics").innerHTML=[
+     ["Seções",""+fmt(d.secoes_totalizadas)+" / "+fmt(d.secoes_total)],
+     ["Votos válidos",fmt(d.votos_validos)],
+     ["Coeficiente eleitoral",fmt2(d.quociente_eleitoral)],
+     ["Cadeiras",fmt(d.cadeiras)]
+   ].map(x=>'<div class="metric"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
+   document.getElementById("parties").innerHTML=d.agrupamentos.map(x=>'<div class="party-row"><span>'+x.nome+'</span><span class="seat">'+x.vagas+' cadeira(s)</span></div>').join("");
+   const elected=d.candidatos.filter(x=>x.snapshot_eleito).sort((a,b)=>a.agrupamento.localeCompare(b.agrupamento,"pt-BR")||b.votos-a.votos);
+   document.getElementById("elected").innerHTML='<div class="elected-grid">'+elected.map((x,i)=>'<div class="elected-card"><b>'+x.nome+'</b><span>'+x.partido+' • '+fmt(x.votos)+' votos</span></div>').join("")+'</div><div class="parcial-note">A ordem acima é apenas organizacional. As cadeiras são atribuídas pelo sistema proporcional; esta lista é uma simulação do momento da apuração.</div>';
+ }catch(e){console.error("Resultado parcial:",e);}
+}
+
 async function loadData(){
  statusEl.textContent="Carregando base oficial do TSE…";
  grid.replaceChildren();
@@ -125,7 +157,8 @@ async function loadData(){
    if(!Array.isArray(data))throw new Error("Formato inválido");
    candidatos=data;
    populateFilters();
-   render();
+   renderResultado();
+  render();
  }catch(error){
    statusEl.textContent="Não foi possível carregar a base.";
    const empty=document.createElement("div");
