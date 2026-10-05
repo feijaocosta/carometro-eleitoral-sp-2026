@@ -5,14 +5,14 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "*/5 * * * *"
 
 permissions:
   contents: write
 
 jobs:
   update:
-    if: github.event_name != 'push' || !contains(github.event.head_commit.message, 'Atualiza candidatos SP pelo TSE')
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, 'Atualiza resultados TSE')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,13 +44,101 @@ jobs:
           curl -L --fail --retry 3 \
             "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/sp/sp-c0006-e06257-u.json" \
             -o data/resultado-sp-deputado-federal.json
+
           python3 - <<'PY'
           import json
-          p='data/resultado-sp-deputado-federal.json'
-          with open(p, encoding='utf-8') as f:
-              d=json.load(f)
-          print('Snapshot TSE baixado com sucesso.')
-          print('Chaves principais:', list(d)[:20])
+
+          src='data/resultado-sp-deputado-federal.json'
+          out='data/parcial-deputados-sp.json'
+
+          with open(src, encoding='utf-8') as f:
+              j=json.load(f)
+
+          # Estrutura do TSE: carg -> agr -> par -> cand.
+          carg=j.get('carg', [{}])[0]
+          progresso=j.get('s', {})
+          votos=j.get('v', {})
+          eleitores=j.get('e', {})
+
+          validos=int(votos.get('tvn', 0) or 0)
+          total_votos=int(votos.get('tv', 0) or 0)
+          total_secoes=int(progresso.get('ts', 0) or 0)
+          secoes_totalizadas=int(progresso.get('st', 0) or 0)
+          percentual=float(str(progresso.get('pst', '0')).replace(',','.').replace('%','') or 0)
+
+          cadeiras=70
+          qe=validos/cadeiras if cadeiras else 0
+
+          def num(v):
+              try: return int(v or 0)
+              except: return 0
+
+          candidatos=[]
+          agrupamentos=[]
+
+          for agr in carg.get('agr', []):
+              agr_nome=agr.get('nm','')
+              agr_vagas=num(agr.get('vag'))
+              grupos={}
+              for par in agr.get('par', []):
+                  sigla=par.get('sg','')
+                  for cand in par.get('cand', []):
+                      c={
+                          'sqcand': cand.get('sqcand',''),
+                          'numero': cand.get('n',''),
+                          'nome': cand.get('nmu') or cand.get('nm') or '',
+                          'votos': num(cand.get('vap')),
+                          'percentual': cand.get('pvap',''),
+                          'situacao': cand.get('st',''),
+                          'eleito_tse': cand.get('e','n'),
+                          'partido': sigla,
+                          'agrupamento': agr_nome,
+                          'vagas_agrupamento': agr_vagas
+                      }
+                      candidatos.append(c)
+                      grupos.setdefault(sigla, []).append(c)
+
+              for sigla, cs in grupos.items():
+                  cs.sort(key=lambda x: (-x['votos'], x['numero']))
+                  for i,c in enumerate(cs):
+                      c['snapshot_eleito'] = i < agr_vagas
+
+              agrupamentos.append({
+                  'nome': agr_nome,
+                  'vagas': agr_vagas,
+                  'votos': num(agr.get('vap')),
+                  'percentual': agr.get('pvap','')
+              })
+
+          candidatos.sort(key=lambda x: (not x['snapshot_eleito'], -x['votos'], x['nome']))
+
+          resultado={
+              'fonte':'Tribunal Superior Eleitoral',
+              'gerado_em': j.get('dg',''),
+              'hora_geracao': j.get('hg',''),
+              'cargo':'Deputado Federal',
+              'uf':'SP',
+              'secoes_total': total_secoes,
+              'secoes_totalizadas': secoes_totalizadas,
+              'percentual_totalizado': percentual,
+              'eleitorado': num(eleitores.get('te')),
+              'eleitorado_totalizado': num(eleitores.get('est')),
+              'votos_validos': validos,
+              'votos_totais': total_votos,
+              'cadeiras': cadeiras,
+              'quociente_eleitoral': qe,
+              'limite_80_porcento_qe': qe*0.8,
+              'limite_20_porcento_qe': qe*0.2,
+              'limite_10_porcento_qe': qe*0.1,
+              'agrupamentos': sorted(agrupamentos, key=lambda x: (-x['vagas'], -x['votos'], x['nome'])),
+              'candidatos': candidatos
+          }
+
+          with open(out,'w',encoding='utf-8') as f:
+              json.dump(resultado,f,ensure_ascii=False,separators=(',',':'))
+
+          print(f"Totalização: {percentual}% | válidos: {validos:,} | QE: {qe:,.2f} | cadeiras: {cadeiras}")
+          print(f"Snapshot com {sum(1 for c in candidatos if c['snapshot_eleito'])} candidatos levando vaga.")
           PY
 
       - name: Gerar JSON de SP mais Presidencia
@@ -98,5 +186,5 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/candidatos-brasil.json data/resultado-sp-deputado-federal.json fotos/
-          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Atualiza candidatos SP pelo TSE"; git push; fi
+          git add data/candidatos-brasil.json data/resultado-sp-deputado-federal.json data/parcial-deputados-sp.json fotos/
+          if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Atualiza resultados TSE"; git push; fi
