@@ -38,6 +38,21 @@ jobs:
           print('Fotos:', len(glob.glob('fotos/*')))
           PY
 
+      - name: Baixar resultado parcial oficial do TSE — Deputado Federal SP
+        run: |
+          mkdir -p data
+          curl -L --fail --retry 3 \
+            "https://resultados.tse.jus.br/oficial/ele2026/6257/dados/sp/sp-c0006-e06257-u.json" \
+            -o data/resultado-sp-deputado-federal.json
+          python3 - <<'PY'
+          import json
+          p='data/resultado-sp-deputado-federal.json'
+          with open(p, encoding='utf-8') as f:
+              d=json.load(f)
+          print('Snapshot TSE baixado com sucesso.')
+          print('Chaves principais:', list(d)[:20])
+          PY
+
       - name: Gerar JSON de SP mais Presidencia
         run: |
           python3 - <<'PY'
@@ -83,5 +98,5 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/candidatos-sp.json fotos/
+          git add data/candidatos-brasil.json data/resultado-sp-deputado-federal.json fotos/
           if git diff --cached --quiet; then echo "Sem alterações"; else git commit -m "Atualiza candidatos SP pelo TSE"; git push; fi
